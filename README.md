@@ -2,6 +2,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+## Database
+
+Production uses Neon PostgreSQL through the Vercel integration. The integration provides the `STORAGE_URL` environment variable.
+
+For local development, copy `.env.example` to `.env.local` and replace the placeholder with the Neon connection string. Then apply the schema:
+
+```bash
+npx prisma migrate deploy
+```
+
 First, run the development server:
 
 ```bash
