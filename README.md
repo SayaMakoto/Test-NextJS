@@ -4,7 +4,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Database
 
-Production uses Neon PostgreSQL through the Vercel integration. The integration provides the `STORAGE_URL` environment variable.
+Production uses Neon PostgreSQL. Add `DATABASE_URL` for the pooled connection and `DATABASE_URL_UNPOOLED` for Prisma migrations in Vercel.
 
 For local development, copy `.env.example` to `.env.local` and replace the placeholder with the Neon connection string. Then apply the schema:
 
