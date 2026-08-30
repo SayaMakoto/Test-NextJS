@@ -1,0 +1,44 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String        @id @default(uuid())
+  username  String        @unique
+  email     String        @unique
+  password  String
+  role      String        @default("member") // "member" | "admin"
+  wheels    Wheel[]
+  spins     SpinHistory[]
+  createdAt DateTime      @default(now())
+}
+
+model Wheel {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  slices         String        // JSON string: Array<{ id: string, label: string, color: string, weight: number, enabled: boolean }>
+  isPublic       Boolean       @default(true)
+  isDeleted      Boolean       @default(false) // Soft delete (Trash Bin status)
+  customWinnerId String        @default("random")
+  hideOnWin      Boolean       @default(false)
+  spins          SpinHistory[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SpinHistory {
+  id          String   @id @default(uuid())
+  wheelId     String
+  wheel       Wheel    @relation(fields: [wheelId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  resultLabel String
+  createdAt   DateTime @default(now())
+}
