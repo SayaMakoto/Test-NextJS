@@ -80,23 +80,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div 
-          style={{ 
-            marginTop: "1.5rem", 
-            padding: "0.8rem", 
-            background: "rgba(139, 92, 246, 0.1)", 
-            borderRadius: "8px", 
-            border: "1px solid rgba(139, 92, 246, 0.2)",
-            fontSize: "0.8rem",
-            color: "#c084fc",
-            lineHeight: "1.4"
-          }}
-        >
-          🔑 <strong>Tài khoản Admin dùng thử:</strong><br />
-          Tên đăng nhập: <code>admin</code><br />
-          Mật khẩu: <code>admin</code>
-        </div>
-
         <p style={{ textAlign: "center", fontSize: "0.85rem", marginTop: "1.5rem", color: "#9ca3af" }}>
           Chưa có tài khoản?{" "}
           <Link href="/register" style={{ color: "#a78bfa", textDecoration: "underline", fontWeight: "600" }}>
