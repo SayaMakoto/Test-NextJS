@@ -29,6 +29,7 @@ model Wheel {
   isDeleted      Boolean       @default(false) // Soft delete (Trash Bin status)
   customWinnerId String        @default("random")
   hideOnWin      Boolean       @default(false)
+  backgroundImage String?
   spins          SpinHistory[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt

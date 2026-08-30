@@ -4,11 +4,21 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
+function getWheelSaveError(error: unknown) {
+  const prismaError = error as { code?: string };
+  if (prismaError?.code === "P2022") {
+    return "Database chưa có cột ảnh nền. Hãy deploy migration mới lên Vercel hoặc chạy prisma migrate deploy ở máy local.";
+  }
+  console.error("Wheel save failed:", error);
+  return "Không thể lưu vòng quay. Vui lòng thử lại với ảnh nhỏ hơn.";
+}
+
 // Create a new wheel with 10 default slices
 export async function createWheelAction(
   name: string,
   slicesJson?: string,
-  isPublic = true
+  isPublic = true,
+  backgroundImage?: string | null
 ) {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {
@@ -31,14 +41,15 @@ export async function createWheelAction(
         slices: slicesJson || JSON.stringify(defaultSlices),
         isPublic,
         isDeleted: false,
+        backgroundImage: backgroundImage || null,
       },
     });
 
     revalidatePath("/admin/wheels");
     revalidatePath("/");
     return { success: true, wheelId: wheel.id };
-  } catch (e) {
-    return { error: "Không thể tạo vòng quay mới." };
+  } catch (error) {
+    return { error: getWheelSaveError(error) };
   }
 }
 
@@ -49,7 +60,8 @@ export async function updateWheelAction(
   slicesJson: string,
   isPublic: boolean,
   customWinnerId?: string,
-  hideOnWin?: boolean
+  hideOnWin?: boolean,
+  backgroundImage?: string | null
 ) {
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") {
@@ -65,6 +77,7 @@ export async function updateWheelAction(
         isPublic,
         customWinnerId: customWinnerId ?? "random",
         hideOnWin: hideOnWin ?? false,
+        backgroundImage: backgroundImage || null,
       },
     });
 
@@ -72,8 +85,8 @@ export async function updateWheelAction(
     revalidatePath(`/wheels/${id}`);
     revalidatePath("/");
     return { success: true };
-  } catch (e) {
-    return { error: "Không thể cập nhật vòng quay." };
+  } catch (error) {
+    return { error: getWheelSaveError(error) };
   }
 }
 

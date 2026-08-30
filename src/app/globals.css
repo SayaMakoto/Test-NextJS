@@ -121,7 +121,7 @@ a {
 }
 
 .wheel-focused-content {
-  width: min(100%, 760px);
+  width: min(100%, 1180px);
 }
 
 .wheel-result-backdrop {
@@ -392,6 +392,37 @@ select option {
 .wheel-weight { display: grid; grid-template-columns: auto auto 1fr; gap: 0.3rem; align-items: center; color: var(--text-secondary); font-size: 0.72rem; }
 .wheel-weight strong { color: #c4b5fd; }
 .wheel-weight input { width: 100%; accent-color: var(--primary); }
+
+.wheel-stage { position: relative; overflow: hidden; width: 100%; border-radius: 14px; background: linear-gradient(135deg, #111827, #24124d); isolation: isolate; }
+.wheel-stage-background { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.wheel-stage-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(7, 10, 19, 0.3) 0%, rgba(7, 10, 19, 0.12) 45%, rgba(7, 10, 19, 0.42) 100%); }
+.wheel-stage-content { position: relative; display: flex; align-items: center; justify-content: flex-end; width: 100%; height: 100%; padding: clamp(0.5rem, 2vw, 1.5rem); }
+.wheel-view-stage { aspect-ratio: 1904 / 805; min-height: 460px; }
+.wheel-editor-stage { aspect-ratio: 3 / 2; min-height: 280px; }
+.wheel-stage .wheel-canvas-container { width: min(57%, 600px) !important; margin: 0 2% 0 auto !important; }
+.wheel-view-stage .wheel-canvas-container { width: auto !important; height: 92%; max-width: none !important; margin: 0 2% 0 auto !important; }
+.wheel-editor-stage .wheel-stage-content > div { width: min(60%, 520px); margin-left: auto; }
+.wheel-editor-stage .wheel-canvas-container { width: 100% !important; max-width: none !important; margin: 0 !important; }
+.wheel-background-upload { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; }
+.wheel-background-upload .btn { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
+.wheel-background-upload p { width: 100%; color: #9ca3af; font-size: 0.72rem; font-weight: 400; }
+.wheel-remove-background { border: 0; color: #fda4af; background: transparent; font: inherit; font-size: 0.78rem; cursor: pointer; }
+
+@media (max-width: 700px) {
+  .wheel-view-stage { aspect-ratio: 3 / 2; min-height: 0; }
+  .wheel-stage .wheel-canvas-container { width: min(78%, 440px) !important; margin: 0 auto !important; }
+  .wheel-view-stage .wheel-canvas-container { width: min(78%, 440px) !important; height: auto; }
+  .wheel-stage-shade { background: rgba(7, 10, 19, 0.22); }
+}
+
+/* Editing views keep controls first and give the preview a full-width canvas below. */
+.wheel-create-grid,
+.wheel-edit-layout {
+  grid-template-columns: 1fr !important;
+}
+
+.wheel-editor-controls { order: 1; }
+.wheel-editor-preview { order: 2; }
 
 .wheel-neon-orbit {
   position: absolute;

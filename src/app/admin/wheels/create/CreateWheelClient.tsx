@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
+import WheelStage from "@/components/WheelStage";
+import WheelBackgroundUpload from "@/components/WheelBackgroundUpload";
 import { createWheelAction } from "../../actions";
 import { ArrowLeftIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon, WheelIcon } from "@/components/Icons";
 
@@ -24,6 +26,7 @@ export default function CreateWheelClient() {
   const [slices, setSlices] = useState<WheelItem[]>(() => Array.from({ length: 6 }, (_, index) => makeSlice(index)));
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
 
   const updateSlice = (id: string, changes: Partial<WheelItem>) => {
     setSlices((current) => current.map((slice) => slice.id === id ? { ...slice, ...changes } : slice));
@@ -44,7 +47,7 @@ export default function CreateWheelClient() {
 
     setError("");
     setIsCreating(true);
-    const result = await createWheelAction(name.trim(), JSON.stringify(slices), isPublic);
+    const result = await createWheelAction(name.trim(), JSON.stringify(slices), isPublic, backgroundImage);
     setIsCreating(false);
     if (result.success && result.wheelId) {
       router.push(`/admin/wheels/${result.wheelId}`);
@@ -70,18 +73,16 @@ export default function CreateWheelClient() {
       {error && <div className="glass-panel" style={{ color: "#fca5a5", background: "rgba(239, 68, 68, 0.12)", padding: "0.8rem", marginBottom: "1rem" }}>{error}</div>}
 
       <div className="wheel-create-grid">
-        <section className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.25rem", alignItems: "center" }}>
+        <section className="glass-panel wheel-editor-preview" style={{ display: "flex", flexDirection: "column", gap: "1.25rem", alignItems: "center" }}>
           <div style={{ alignSelf: "stretch", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 style={{ fontSize: "1.1rem", fontWeight: 700, display: "flex", gap: "0.5rem", alignItems: "center" }}><WheelIcon className="w-5 h-5" style={{ color: "#ec4899" }} /> Xem trước</h3>
             <span style={{ color: "#a78bfa", fontSize: "0.75rem", fontWeight: 700 }}>{slices.filter((slice) => slice.enabled).length} Ô HIỂN THỊ</span>
           </div>
-          <div style={{ width: "100%", maxWidth: "420px", pointerEvents: "none" }}>
-            <LuckyWheel items={slices} isSpinning={false} onSpinComplete={() => {}} onSpinStart={() => {}} triggerSpinSignal={false} setTriggerSpinSignal={() => {}} customWinningIndex={null} />
-          </div>
+          <WheelStage backgroundImage={backgroundImage} className="wheel-editor-stage"><div style={{ pointerEvents: "none" }}><LuckyWheel items={slices} isSpinning={false} onSpinComplete={() => {}} onSpinStart={() => {}} triggerSpinSignal={false} setTriggerSpinSignal={() => {}} customWinningIndex={null} /></div></WheelStage>
           <p style={{ color: "#9ca3af", fontSize: "0.8rem", textAlign: "center" }}>Bản xem trước sẽ cập nhật ngay khi bạn thay đổi các ô bên cạnh.</p>
         </section>
 
-        <section style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <section className="wheel-editor-controls" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           <div className="glass-panel">
             <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#a78bfa", display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1.2rem" }}><PencilIcon className="w-5 h-5" /> Thông tin cơ bản</h3>
             <div style={{ display: "grid", gap: "1rem" }}>
@@ -94,6 +95,9 @@ export default function CreateWheelClient() {
                   <option value="private">Riêng tư — chỉ quản trị viên</option>
                 </select>
               </label>
+              <div className="wheel-form-label">Ảnh nền vòng quay
+                <WheelBackgroundUpload value={backgroundImage} onChange={setBackgroundImage} onError={setError} />
+              </div>
             </div>
           </div>
 

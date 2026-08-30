@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
+import WheelStage from "@/components/WheelStage";
 import { saveSpinAction } from "./actions";
 import { ArrowLeftIcon } from "@/components/Icons";
 
@@ -14,6 +15,7 @@ interface WheelClientWrapperProps {
   currentUser: { id: string; username: string; role: string } | null;
   customWinnerId?: string;
   hideOnWin?: boolean;
+  backgroundImage?: string | null;
 }
 
 export default function WheelClientWrapper({
@@ -24,6 +26,7 @@ export default function WheelClientWrapper({
   currentUser,
   customWinnerId = "random",
   hideOnWin = false,
+  backgroundImage,
 }: WheelClientWrapperProps) {
   const [items, setItems] = useState<WheelItem[]>(slices);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -145,8 +148,9 @@ export default function WheelClientWrapper({
       <div className="wheel-focused-view">
         {/* Left Column: Canvas, Spin Button, Winner Reveal */}
         <div className="wheel-focused-content" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          <div className="glass-panel" style={{ textAlign: "center", padding: "2rem" }}>
-            <LuckyWheel
+          <div className="glass-panel" style={{ textAlign: "center", padding: "0.75rem" }}>
+            <WheelStage backgroundImage={backgroundImage} className="wheel-view-stage">
+              <LuckyWheel
               items={items}
               isSpinning={isSpinning}
               onSpinComplete={handleSpinComplete}
@@ -154,8 +158,9 @@ export default function WheelClientWrapper({
               triggerSpinSignal={triggerSpin}
               setTriggerSpinSignal={setTriggerSpin}
               customWinningIndex={getCustomWinningIndex()}
-              large
-            />
+                large
+              />
+            </WheelStage>
 
             <div style={{ marginTop: "1.5rem" }}>
               <button

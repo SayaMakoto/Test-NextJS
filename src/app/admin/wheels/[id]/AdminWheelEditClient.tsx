@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
+import WheelStage from "@/components/WheelStage";
+import WheelBackgroundUpload from "@/components/WheelBackgroundUpload";
 import { updateWheelAction } from "../../actions";
 import { 
   ArrowLeftIcon, 
@@ -24,6 +26,7 @@ interface SerializedWheel {
   isDeleted: boolean;
   customWinnerId: string;
   hideOnWin: boolean;
+  backgroundImage: string | null;
   createdAt: string;
   updatedAt: string;
   user: { username: string };
@@ -50,6 +53,7 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
   const [hideOnWin, setHideOnWin] = useState(initialWheel.hideOnWin || false);
   const [message, setMessage] = useState<{ error?: string; success?: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(initialWheel.backgroundImage);
 
   const showMessage = (msg: { error?: string; success?: string }) => {
     setMessage(msg);
@@ -100,7 +104,8 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
       JSON.stringify(slices),
       isPublic,
       customWinnerId,
-      hideOnWin
+      hideOnWin,
+      backgroundImage
     );
     setIsSaving(false);
 
@@ -138,7 +143,7 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
       )}
 
       {/* Main split grid */}
-      <div 
+      <div className="wheel-edit-layout"
         style={{ 
           display: "grid", 
           gridTemplateColumns: "1fr 1.2fr", 
@@ -147,12 +152,11 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
         }}
       >
         {/* Left Column: Visual Wheel Preview */}
-        <div className="glass-panel" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", textAlign: "center" }}>
+        <div className="glass-panel wheel-editor-preview" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", textAlign: "center" }}>
           <h3 style={{ fontSize: "1.1rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center" }}>
             <WheelIcon className="w-5 h-5" style={{ color: "#ec4899" }} /> Xem trước vòng quay
           </h3>
-          <div style={{ pointerEvents: "none", opacity: 0.85 }}>
-            <LuckyWheel
+          <WheelStage backgroundImage={backgroundImage} className="wheel-editor-stage"><div style={{ pointerEvents: "none", opacity: 0.9 }}><LuckyWheel
               items={slices}
               isSpinning={false}
               onSpinComplete={() => {}}
@@ -160,15 +164,14 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
               triggerSpinSignal={false}
               setTriggerSpinSignal={() => {}}
               customWinningIndex={null}
-            />
-          </div>
+            /></div></WheelStage>
           <p style={{ fontSize: "0.8rem", color: "#9ca3af" }}>
             (Vòng quay hiển thị trực quan tỷ lệ, kích thước và màu sắc thực tế dựa trên bảng cấu hình bên phải)
           </p>
         </div>
 
         {/* Right Column: Editor Controls & Prank Settings */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        <div className="wheel-editor-controls" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           
           {/* Wheel configuration panel */}
           <div className="glass-panel">
@@ -186,6 +189,10 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
                   value={wheelName}
                   onChange={(e) => setWheelName(e.target.value)}
                 />
+              </div>
+              <div>
+                <label style={{ fontSize: "0.8rem", color: "#9ca3af", display: "block", marginBottom: "0.3rem", fontWeight: "600" }}>Ảnh nền vòng quay:</label>
+                <WheelBackgroundUpload value={backgroundImage} onChange={setBackgroundImage} onError={(error) => showMessage({ error })} />
               </div>
 
               <div>

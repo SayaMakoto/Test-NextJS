@@ -61,6 +61,7 @@ export default async function WheelDetailPage({ params }: PageProps) {
         currentUser={user}
         customWinnerId={wheel.customWinnerId}
         hideOnWin={wheel.hideOnWin}
+        backgroundImage={wheel.backgroundImage}
       />
     </div>
   );
