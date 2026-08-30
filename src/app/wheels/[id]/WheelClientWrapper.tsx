@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
 import { saveSpinAction } from "./actions";
 import { ChartBarIcon } from "@/components/Icons";
@@ -37,6 +37,8 @@ export default function WheelClientWrapper({
   const [isSpinning, setIsSpinning] = useState(false);
   const [triggerSpin, setTriggerSpin] = useState(false);
   const [winner, setWinner] = useState<WheelItem | null>(null);
+  const winAudioContextRef = useRef<AudioContext | null>(null);
+  const isAdminView = currentUser?.role === "admin";
 
   // Sync slices prop updates
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function WheelClientWrapper({
 
   const handleSpinStartClick = () => {
     if (activeItems.length === 0) return;
+    prepareWinningSound();
     setWinner(null);
     setTriggerSpin(true);
   };
@@ -61,9 +64,47 @@ export default function WheelClientWrapper({
     setIsSpinning(true);
   };
 
+  const prepareWinningSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return null;
+
+      if (!winAudioContextRef.current) winAudioContextRef.current = new AudioContextClass();
+      const context = winAudioContextRef.current;
+      if (context.state === "suspended") void context.resume();
+      return context;
+    } catch {
+      return null;
+    }
+  };
+
+  const playWinningSound = () => {
+    try {
+      const context = prepareWinningSound();
+      if (!context) return;
+      [523.25, 659.25, 783.99].forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const startAt = context.currentTime + index * 0.14;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, startAt);
+        gain.gain.setValueAtTime(0.0001, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.16, startAt + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.3);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(startAt);
+        oscillator.stop(startAt + 0.32);
+      });
+    } catch {
+      // Sound is an enhancement; browsers can block Web Audio in some cases.
+    }
+  };
+
   const handleSpinComplete = async (wonItem: WheelItem) => {
     setIsSpinning(false);
     setWinner(wonItem);
+    playWinningSound();
 
     // Save spin result in database
     await saveSpinAction(wheelId, wonItem.label);
@@ -99,10 +140,10 @@ export default function WheelClientWrapper({
         </p>
       </div>
 
-      <div className="dashboard-grid">
+      <div className={isAdminView ? "admin-wheel-view" : "dashboard-grid"}>
         {/* Left Column: Canvas, Spin Button, Winner Reveal */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          <div className="glass-panel" style={{ textAlign: "center" }}>
+        <div className={isAdminView ? "admin-wheel-content" : undefined} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <div className="glass-panel" style={{ textAlign: "center", padding: isAdminView ? "2rem" : undefined }}>
             <LuckyWheel
               items={items}
               isSpinning={isSpinning}
@@ -111,6 +152,7 @@ export default function WheelClientWrapper({
               triggerSpinSignal={triggerSpin}
               setTriggerSpinSignal={setTriggerSpin}
               customWinningIndex={getCustomWinningIndex()}
+              large={isAdminView}
             />
 
             <div style={{ marginTop: "1.5rem" }}>
@@ -143,7 +185,7 @@ export default function WheelClientWrapper({
         </div>
 
         {/* Right Column: Spin History */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {!isAdminView && <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           {/* Spin History Panel */}
           <div className="glass-panel">
             <h3 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
@@ -186,7 +228,7 @@ export default function WheelClientWrapper({
             )}
           </div>
 
-        </div>
+        </div>}
       </div>
     </div>
   );

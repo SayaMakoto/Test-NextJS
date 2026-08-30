@@ -18,6 +18,7 @@ interface LuckyWheelProps {
   triggerSpinSignal: boolean; // Toggle to start spin
   setTriggerSpinSignal: (val: boolean) => void;
   customWinningIndex: number | null; // Set by host to manipulate result
+  large?: boolean;
 }
 
 export default function LuckyWheel({
@@ -28,6 +29,7 @@ export default function LuckyWheel({
   triggerSpinSignal,
   setTriggerSpinSignal,
   customWinningIndex,
+  large = false,
 }: LuckyWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -230,7 +232,11 @@ export default function LuckyWheel({
       ctx.moveTo(centerX, centerY);
       ctx.arc(centerX, centerY, radius, startAngle, endAngle);
       ctx.closePath();
-      ctx.fillStyle = item.color;
+      const sliceGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+      sliceGradient.addColorStop(0, "rgba(255, 255, 255, 0.24)");
+      sliceGradient.addColorStop(0.12, item.color);
+      sliceGradient.addColorStop(1, item.color);
+      ctx.fillStyle = sliceGradient;
       ctx.fill();
 
       // Divider lines
@@ -248,30 +254,30 @@ export default function LuckyWheel({
       ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
       
       // Responsive dynamic font sizing based on slice count
-      const fontSize = activeItems.length > 15 ? 10 : activeItems.length > 10 ? 12 : 14;
+      const fontSize = activeItems.length > 15 ? 11 : activeItems.length > 10 ? 14 : 17;
       ctx.font = `bold ${fontSize}px var(--font-sans)`;
-      ctx.textAlign = "right";
+      ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
       // Truncate text if it's too long
       let text = item.label;
-      if (text.length > 15) {
-        text = text.substring(0, 13) + "..";
+      if (text.length > 18) {
+        text = text.substring(0, 16) + "..";
       }
 
-      ctx.fillText(text, radius - 24, 0);
+      ctx.fillText(text, radius * 0.58, 0);
       ctx.restore();
     });
 
     // 3. Draw Outer Glowing Ring
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = "#1e293b";
-    ctx.lineWidth = 8;
+    ctx.strokeStyle = "#312e81";
+    ctx.lineWidth = 12;
     ctx.stroke();
 
     // 4. Draw Flashing Bulbs on Ring
-    const numBulbs = 20;
+    const numBulbs = 24;
     const flashOffset = Math.floor(Date.now() / 250) % 2; // alternates every 250ms
 
     for (let i = 0; i < numBulbs; i++) {
@@ -280,7 +286,7 @@ export default function LuckyWheel({
       const bulbY = centerY + radius * Math.sin(bulbAngle);
 
       ctx.beginPath();
-      ctx.arc(bulbX, bulbY, 4, 0, 2 * Math.PI);
+      ctx.arc(bulbX, bulbY, 4.5, 0, 2 * Math.PI);
       
       const isGlowing = (i + flashOffset) % 2 === 0;
       ctx.fillStyle = isGlowing ? "#fef08a" : "#71717a";
@@ -298,36 +304,39 @@ export default function LuckyWheel({
     // 5. Draw Center Pin (Inner Hub)
     ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 24, 0, 2 * Math.PI);
-    ctx.fillStyle = "#111827";
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.arc(centerX, centerY, 34, 0, 2 * Math.PI);
+    const hubGradient = ctx.createRadialGradient(centerX - 9, centerY - 9, 2, centerX, centerY, 34);
+    hubGradient.addColorStop(0, "#ddd6fe");
+    hubGradient.addColorStop(0.28, "#8b5cf6");
+    hubGradient.addColorStop(1, "#3b0764");
+    ctx.fillStyle = hubGradient;
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = "rgba(139, 92, 246, 0.75)";
     ctx.fill();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
     // Center jewel glow
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
-    ctx.fillStyle = "linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)";
-    ctx.fillStyle = "#8b5cf6";
-    ctx.shadowBlur = 6;
-    ctx.shadowColor = "#8b5cf6";
+    ctx.arc(centerX, centerY, 11, 0, 2 * Math.PI);
+    ctx.fillStyle = "#fef3c7";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "#fef3c7";
     ctx.fill();
     ctx.restore();
 
     // 6. Draw Top Pointer Pin
     ctx.save();
-    ctx.translate(centerX, centerY - radius - 5);
+    ctx.translate(centerX, centerY - radius - 2);
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(-12, -24);
-    ctx.lineTo(12, -24);
+    ctx.lineTo(-15, -30);
+    ctx.lineTo(15, -30);
     ctx.closePath();
-    ctx.fillStyle = "#ec4899"; // Accent color
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = "#ec4899";
+    ctx.fillStyle = "#f43f5e";
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "#f43f5e";
     ctx.fill();
 
     // Pointer border
@@ -358,7 +367,7 @@ export default function LuckyWheel({
       style={{
         position: "relative",
         width: "100%",
-        maxWidth: "420px",
+        maxWidth: large ? "600px" : "420px",
         aspectRatio: "1/1",
         margin: "0 auto",
       }}

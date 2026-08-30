@@ -104,6 +104,16 @@ a {
   align-items: start;
 }
 
+.admin-wheel-view {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.admin-wheel-content {
+  width: min(100%, 760px);
+}
+
 @media (max-width: 900px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
