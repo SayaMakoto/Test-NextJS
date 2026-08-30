@@ -114,6 +114,55 @@ a {
   width: min(100%, 760px);
 }
 
+.wheel-focused-view {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.wheel-focused-content {
+  width: min(100%, 760px);
+}
+
+.wheel-result-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border: 0;
+  background: rgba(3, 7, 18, 0.72);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.wheel-result-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(100%, 440px);
+  padding: 2.5rem 1.5rem;
+  border: 1px solid rgba(244, 114, 182, 0.7);
+  border-radius: 24px;
+  color: #fff;
+  background: radial-gradient(circle at top, rgba(217, 70, 239, 0.35), rgba(15, 23, 42, 0.97) 66%);
+  box-shadow: 0 0 32px rgba(236, 72, 153, 0.45), 0 20px 70px rgba(0, 0, 0, 0.56);
+  cursor: default;
+  animation: wheel-result-enter 260ms ease-out;
+}
+
+.wheel-result-sparkle { color: #fef08a; font-size: 2rem; text-shadow: 0 0 14px #facc15; }
+.wheel-result-title { color: #f9a8d4; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.16em; }
+.wheel-result-popup strong { color: #fff; font-size: clamp(1.7rem, 6vw, 2.5rem); text-align: center; }
+.wheel-result-popup small { color: #cbd5e1; font-size: 0.68rem; }
+
+@keyframes wheel-result-enter {
+  from { opacity: 0; transform: scale(0.9) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 @media (max-width: 900px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -343,6 +392,30 @@ select option {
 .wheel-weight { display: grid; grid-template-columns: auto auto 1fr; gap: 0.3rem; align-items: center; color: var(--text-secondary); font-size: 0.72rem; }
 .wheel-weight strong { color: #c4b5fd; }
 .wheel-weight input { width: 100%; accent-color: var(--primary); }
+
+.wheel-neon-orbit {
+  position: absolute;
+  inset: 3.6%;
+  z-index: 0;
+  border: 5px solid transparent;
+  border-radius: 50%;
+  background:
+    linear-gradient(#101322, #101322) padding-box,
+    conic-gradient(from 0deg, #22d3ee, #a78bfa, #f472b6, #fbbf24, #22d3ee) border-box;
+  box-shadow:
+    0 0 10px rgba(34, 211, 238, 0.8),
+    0 0 24px rgba(139, 92, 246, 0.72),
+    inset 0 0 14px rgba(236, 72, 153, 0.36);
+  animation: wheel-neon-orbit 3.6s linear infinite;
+}
+
+@keyframes wheel-neon-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-neon-orbit { animation: none; }
+}
 
 @media (max-width: 880px) {
   .wheel-create-grid { grid-template-columns: 1fr; }

@@ -1,23 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
 import { saveSpinAction } from "./actions";
-import { ChartBarIcon } from "@/components/Icons";
-
-interface SpinHistoryEntry {
-  id: string;
-  resultLabel: string;
-  createdAt: Date;
-  user: { username: string } | null;
-}
+import { ArrowLeftIcon } from "@/components/Icons";
 
 interface WheelClientWrapperProps {
   wheelId: string;
   wheelName: string;
   creatorName: string;
   slices: WheelItem[];
-  history: SpinHistoryEntry[];
   currentUser: { id: string; username: string; role: string } | null;
   customWinnerId?: string;
   hideOnWin?: boolean;
@@ -28,7 +21,6 @@ export default function WheelClientWrapper({
   wheelName,
   creatorName,
   slices,
-  history,
   currentUser,
   customWinnerId = "random",
   hideOnWin = false,
@@ -39,6 +31,14 @@ export default function WheelClientWrapper({
   const [winner, setWinner] = useState<WheelItem | null>(null);
   const winAudioContextRef = useRef<AudioContext | null>(null);
   const isAdminView = currentUser?.role === "admin";
+
+  useEffect(() => {
+    if (!winner) return;
+
+    const closeResult = () => setWinner(null);
+    window.addEventListener("keydown", closeResult);
+    return () => window.removeEventListener("keydown", closeResult);
+  }, [winner]);
 
   // Sync slices prop updates
   useEffect(() => {
@@ -133,17 +133,19 @@ export default function WheelClientWrapper({
           border: "1px solid rgba(255,255,255,0.03)"
         }}
       >
-        <h1 style={{ fontSize: "2.2rem", fontWeight: "800", marginBottom: "0.5rem" }}>{wheelName}</h1>
-        <p style={{ color: "#9ca3af", fontSize: "0.9rem" }}>
-          Tác giả: <strong style={{ color: "#a78bfa" }}>{creatorName}</strong> 
-          {currentUser ? ` • Đang chơi với tư cách: ${currentUser.username} (${currentUser.role})` : " • Đang chơi ẩn danh"}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.7rem" }}>
+          <Link href={isAdminView ? "/admin/wheels" : "/"} className="btn btn-secondary" style={{ padding: "0.45rem 0.7rem", fontSize: "0.8rem" }}>
+            <ArrowLeftIcon className="w-4 h-4" /> Quay về
+          </Link>
+          <h1 style={{ fontSize: "2.2rem", fontWeight: "800" }}>{wheelName}</h1>
+          <span style={{ width: "91px" }} aria-hidden="true" />
+        </div>
       </div>
 
-      <div className={isAdminView ? "admin-wheel-view" : "dashboard-grid"}>
+      <div className="wheel-focused-view">
         {/* Left Column: Canvas, Spin Button, Winner Reveal */}
-        <div className={isAdminView ? "admin-wheel-content" : undefined} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          <div className="glass-panel" style={{ textAlign: "center", padding: isAdminView ? "2rem" : undefined }}>
+        <div className="wheel-focused-content" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <div className="glass-panel" style={{ textAlign: "center", padding: "2rem" }}>
             <LuckyWheel
               items={items}
               isSpinning={isSpinning}
@@ -152,7 +154,7 @@ export default function WheelClientWrapper({
               triggerSpinSignal={triggerSpin}
               setTriggerSpinSignal={setTriggerSpin}
               customWinningIndex={getCustomWinningIndex()}
-              large={isAdminView}
+              large
             />
 
             <div style={{ marginTop: "1.5rem" }}>
@@ -167,69 +169,17 @@ export default function WheelClientWrapper({
             </div>
           </div>
 
-          {winner && (
-            <div 
-              className="glass-panel" 
-              style={{ 
-                border: "2px solid #ec4899",
-                background: "rgba(236, 72, 153, 0.1)",
-                textAlign: "center",
-              }}
-            >
-              <h3 style={{ color: "#f472b6", marginBottom: "0.25rem" }}>Kết quả nhận được</h3>
-              <p style={{ fontSize: "1.8rem", fontWeight: "800", color: "#ffffff" }}>
-                {winner.label}
-              </p>
-            </div>
-          )}
         </div>
-
-        {/* Right Column: Spin History */}
-        {!isAdminView && <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          {/* Spin History Panel */}
-          <div className="glass-panel">
-            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <ChartBarIcon className="w-5 h-5" /> Lịch Sử Lượt Quay Gần Đây
-            </h3>
-
-            {history.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {history.map((entry) => {
-                  const date = new Date(entry.createdAt);
-                  const time = date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-                  return (
-                    <div 
-                      key={entry.id}
-                      style={{ 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        background: "rgba(255, 255, 255, 0.02)",
-                        padding: "0.5rem 0.75rem",
-                        borderRadius: "6px",
-                        fontSize: "0.85rem"
-                      }}
-                    >
-                      <div>
-                        <strong style={{ color: "#fff" }}>{entry.resultLabel}</strong>
-                        <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.15rem" }}>
-                          Quay bởi: <span style={{ color: "#a78bfa" }}>{entry.user?.username || "Khách"}</span>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>{time}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p style={{ fontSize: "0.85rem", color: "#9ca3af", textAlign: "center", padding: "1rem" }}>
-                Chưa có lượt quay nào được ghi nhận. Hãy quay lượt đầu tiên!
-              </p>
-            )}
-          </div>
-
-        </div>}
       </div>
+
+      {winner && <button type="button" className="wheel-result-backdrop" onClick={() => setWinner(null)} aria-label="Đóng thông báo kết quả">
+        <span className="wheel-result-popup">
+          <span className="wheel-result-sparkle">✦</span>
+          <span className="wheel-result-title">CHÚC MỪNG!</span>
+          <strong>{winner.label}</strong>
+          <small>Nhấn bất kỳ phím nào hoặc bấm bên ngoài để đóng</small>
+        </span>
+      </button>}
     </div>
   );
 }

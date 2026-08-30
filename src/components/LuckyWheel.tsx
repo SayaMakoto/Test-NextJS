@@ -269,64 +269,59 @@ export default function LuckyWheel({
       ctx.restore();
     });
 
-    // 3. Draw Outer Glowing Ring
+    // 3. Draw clean outer frame; the moving neon outline is rendered as a CSS layer.
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = "#312e81";
-    ctx.lineWidth = 12;
+    ctx.strokeStyle = "rgba(15, 23, 42, 0.94)";
+    ctx.lineWidth = 14;
     ctx.stroke();
 
-    // 4. Draw Flashing Bulbs on Ring
-    const numBulbs = 24;
-    const flashOffset = Math.floor(Date.now() / 250) % 2; // alternates every 250ms
-
-    for (let i = 0; i < numBulbs; i++) {
-      const bulbAngle = (i * (2 * Math.PI)) / numBulbs + (angle * Math.PI) / 180;
-      const bulbX = centerX + radius * Math.cos(bulbAngle);
-      const bulbY = centerY + radius * Math.sin(bulbAngle);
-
-      ctx.beginPath();
-      ctx.arc(bulbX, bulbY, 4.5, 0, 2 * Math.PI);
-      
-      const isGlowing = (i + flashOffset) % 2 === 0;
-      ctx.fillStyle = isGlowing ? "#fef08a" : "#71717a";
-      if (isGlowing) {
-        ctx.save();
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = "#fef08a";
-        ctx.fill();
-        ctx.restore();
-      } else {
-        ctx.fill();
-      }
-    }
-
-    // 5. Draw Center Pin (Inner Hub)
+    // 4. Draw the multi-layer center hub.
     ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 34, 0, 2 * Math.PI);
-    const hubGradient = ctx.createRadialGradient(centerX - 9, centerY - 9, 2, centerX, centerY, 34);
-    hubGradient.addColorStop(0, "#ddd6fe");
-    hubGradient.addColorStop(0.28, "#8b5cf6");
-    hubGradient.addColorStop(1, "#3b0764");
-    ctx.fillStyle = hubGradient;
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = "rgba(139, 92, 246, 0.75)";
+    ctx.arc(centerX, centerY, 43, 0, 2 * Math.PI);
+    const outerHubGradient = ctx.createRadialGradient(centerX - 12, centerY - 12, 2, centerX, centerY, 43);
+    outerHubGradient.addColorStop(0, "#f5d0fe");
+    outerHubGradient.addColorStop(0.22, "#e879f9");
+    outerHubGradient.addColorStop(0.58, "#7c3aed");
+    outerHubGradient.addColorStop(1, "#2e1065");
+    ctx.fillStyle = outerHubGradient;
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = "rgba(217, 70, 239, 0.7)";
     ctx.fill();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.65)";
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Center jewel glow
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 11, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, 31, 0, 2 * Math.PI);
+    const innerHubGradient = ctx.createLinearGradient(centerX - 20, centerY - 20, centerX + 25, centerY + 25);
+    innerHubGradient.addColorStop(0, "#1e1b4b");
+    innerHubGradient.addColorStop(1, "#0f172a");
+    ctx.fillStyle = innerHubGradient;
+    ctx.shadowBlur = 0;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 27, 0, 2 * Math.PI);
+    ctx.strokeStyle = "rgba(196, 181, 253, 0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
     ctx.fillStyle = "#fef3c7";
     ctx.shadowBlur = 10;
-    ctx.shadowColor = "#fef3c7";
-    ctx.fill();
+    ctx.shadowColor = "#fbbf24";
+    ctx.font = "800 9px var(--font-sans)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("✦", centerX, centerY - 9);
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowBlur = 0;
+    ctx.font = "800 8px var(--font-sans)";
+    ctx.fillText("QUAY", centerX, centerY + 7);
     ctx.restore();
 
-    // 6. Draw Top Pointer Pin
+    // 5. Draw Top Pointer Pin
     ctx.save();
     ctx.translate(centerX, centerY - radius - 2);
     ctx.beginPath();
@@ -347,20 +342,6 @@ export default function LuckyWheel({
 
   }, [angle, activeItems]);
 
-  // Minor loop to update the lightbulb animation when not spinning
-  useEffect(() => {
-    let animationId: number;
-    const updateLights = () => {
-      // Force redraw when idle so bulb lights flash
-      if (!isSpinning) {
-        setAngle((prev) => prev); 
-      }
-      animationId = requestAnimationFrame(updateLights);
-    };
-    animationId = requestAnimationFrame(updateLights);
-    return () => cancelAnimationFrame(animationId);
-  }, [isSpinning]);
-
   return (
     <div 
       className="wheel-canvas-container" 
@@ -372,6 +353,7 @@ export default function LuckyWheel({
         margin: "0 auto",
       }}
     >
+      <div className="wheel-neon-orbit" aria-hidden="true" />
       <canvas
         ref={canvasRef}
         style={{
@@ -379,6 +361,8 @@ export default function LuckyWheel({
           height: "100%",
           display: "block",
           cursor: isSpinning ? "not-allowed" : "pointer",
+          position: "relative",
+          zIndex: 1,
         }}
         onClick={() => {
           if (!isSpinning) {

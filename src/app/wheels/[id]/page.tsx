@@ -38,20 +38,6 @@ export default async function WheelDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Admins can review the complete history for this wheel; other users only see their own recent spins.
-  const history = user ? await db.spinHistory.findMany({
-    where: user.role === "admin" ? { wheelId: id } : { wheelId: id, userId: user.id },
-    include: {
-      user: {
-        select: { username: true }
-      }
-    },
-    orderBy: {
-      createdAt: "desc"
-    },
-    take: user.role === "admin" ? undefined : 10
-  }) : [];
-
   let parsedSlices = [];
   try {
     parsedSlices = JSON.parse(wheel.slices);
@@ -72,7 +58,6 @@ export default async function WheelDetailPage({ params }: PageProps) {
         wheelName={wheel.name}
         creatorName={wheel.user.username}
         slices={parsedSlices}
-        history={history}
         currentUser={user}
         customWinnerId={wheel.customWinnerId}
         hideOnWin={wheel.hideOnWin}
