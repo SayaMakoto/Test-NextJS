@@ -38,6 +38,8 @@ export default async function WheelDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const credit = user && user.role !== "admin" ? await db.spinCodeRedemption.aggregate({ where: { userId: user.id }, _sum: { remaining: true } }) : null;
+
   let parsedSlices = [];
   try {
     parsedSlices = JSON.parse(wheel.slices);
@@ -62,6 +64,7 @@ export default async function WheelDetailPage({ params }: PageProps) {
         customWinnerId={wheel.customWinnerId}
         hideOnWin={wheel.hideOnWin}
         backgroundImage={wheel.backgroundImage}
+        initialCredits={credit?._sum.remaining ?? 0}
       />
     </div>
   );

@@ -157,6 +157,7 @@ a {
 .wheel-result-title { color: #f9a8d4; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.16em; }
 .wheel-result-popup strong { color: #fff; font-size: clamp(1.7rem, 6vw, 2.5rem); text-align: center; }
 .wheel-result-popup small { color: #cbd5e1; font-size: 0.68rem; }
+.wheel-code-popup { border-color: rgba(196, 181, 253, .72); }
 
 @keyframes wheel-result-enter {
   from { opacity: 0; transform: scale(0.9) translateY(12px); }
@@ -407,12 +408,23 @@ select option {
 .wheel-background-upload .btn { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
 .wheel-background-upload p { width: 100%; color: #9ca3af; font-size: 0.72rem; font-weight: 400; }
 .wheel-remove-background { border: 0; color: #fda4af; background: transparent; font: inherit; font-size: 0.78rem; cursor: pointer; }
+.spin-code-form { display: grid; grid-template-columns: minmax(180px, 1fr) 150px auto; gap: .75rem; align-items: end; }
+.spin-code-entry { display: grid; grid-template-columns: 1fr minmax(260px, 420px); gap: 1rem; align-items: center; border-color: rgba(167, 139, 250, .5); background: linear-gradient(120deg, rgba(91, 33, 182, .24), rgba(236, 72, 153, .1)); box-shadow: 0 0 24px rgba(139, 92, 246, .16); }
+.spin-code-entry strong { color: #f5d0fe; font-size: 1.05rem; }
+.spin-code-entry input, .spin-code-form input { border-radius: 10px !important; color: #f8fafc !important; background: rgba(15, 23, 42, .92) !important; border: 1px solid rgba(196, 181, 253, .55) !important; }
+.spin-code-entry input { text-align: center; }
+.spin-code-entry input::placeholder { text-align: center; }
+.spin-code-entry input:focus, .spin-code-form input:focus { border-color: #e879f9 !important; box-shadow: 0 0 0 3px rgba(232, 121, 249, .18) !important; }
+.spin-code-entry p, .spin-code-entry small { color: #9ca3af; font-size: .8rem; margin-top: .25rem; }
+.spin-code-entry small { grid-column: 1 / -1; color: #c4b5fd; }
 
 @media (max-width: 700px) {
   .wheel-view-stage { aspect-ratio: 3 / 2; min-height: 0; }
   .wheel-stage .wheel-canvas-container { width: min(78%, 440px) !important; margin: 0 auto !important; }
   .wheel-view-stage .wheel-canvas-container { width: min(78%, 440px) !important; height: auto; }
   .wheel-stage-shade { background: rgba(7, 10, 19, 0.22); }
+  .spin-code-form { grid-template-columns: 1fr; }
+  .spin-code-entry { grid-template-columns: 1fr; }
 }
 
 /* Editing views keep controls first and give the preview a full-width canvas below. */

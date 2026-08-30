@@ -16,6 +16,7 @@ model User {
   role      String        @default("member") // "member" | "admin"
   wheels    Wheel[]
   spins     SpinHistory[]
+  codeRedemptions SpinCodeRedemption[]
   createdAt DateTime      @default(now())
 }
 
@@ -43,4 +44,26 @@ model SpinHistory {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   resultLabel String
   createdAt   DateTime @default(now())
+}
+
+model SpinCode {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  amount    Int
+  status    String   @default("unused")
+  createdAt DateTime @default(now())
+  redemptions SpinCodeRedemption[]
+}
+
+model SpinCodeRedemption {
+  id        String   @id @default(uuid())
+  codeId    String
+  userId    String
+  remaining Int
+  createdAt DateTime @default(now())
+  code      SpinCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([codeId, userId])
+  @@index([userId, remaining])
 }

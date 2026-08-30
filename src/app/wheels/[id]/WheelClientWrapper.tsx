@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
 import WheelStage from "@/components/WheelStage";
-import { saveSpinAction } from "./actions";
+import { consumeSpinCreditAction, redeemSpinCodeAction, saveSpinAction } from "./actions";
 import { ArrowLeftIcon } from "@/components/Icons";
 
 interface WheelClientWrapperProps {
@@ -16,6 +16,7 @@ interface WheelClientWrapperProps {
   customWinnerId?: string;
   hideOnWin?: boolean;
   backgroundImage?: string | null;
+  initialCredits: number;
 }
 
 export default function WheelClientWrapper({
@@ -27,6 +28,7 @@ export default function WheelClientWrapper({
   customWinnerId = "random",
   hideOnWin = false,
   backgroundImage,
+  initialCredits,
 }: WheelClientWrapperProps) {
   const [items, setItems] = useState<WheelItem[]>(slices);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -34,6 +36,13 @@ export default function WheelClientWrapper({
   const [winner, setWinner] = useState<WheelItem | null>(null);
   const winAudioContextRef = useRef<AudioContext | null>(null);
   const isAdminView = currentUser?.role === "admin";
+  const [credits, setCredits] = useState(initialCredits);
+  const [spinCode, setSpinCode] = useState("");
+  const [codeMessage, setCodeMessage] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  // Show the guidance immediately for every regular visitor with no credits,
+  // including guests. Guests will see that they need to sign in before using a code.
+  const [showCodePrompt, setShowCodePrompt] = useState(Boolean(!isAdminView && initialCredits <= 0));
 
   useEffect(() => {
     if (!winner) return;
@@ -56,11 +65,23 @@ export default function WheelClientWrapper({
     return index !== -1 ? index : null;
   };
 
-  const handleSpinStartClick = () => {
+  const handleSpinStartClick = async () => {
     if (activeItems.length === 0) return;
+    if (!currentUser) { setCodeMessage("Vui lòng đăng nhập và nhập mã quay trước khi quay."); setShowCodePrompt(true); return; }
+    const creditResult = await consumeSpinCreditAction();
+    if (!("success" in creditResult) || !creditResult.success) { setCodeMessage(creditResult.error || "Không thể quay."); setShowCodePrompt(true); return; }
+    if (creditResult.remaining >= 0) setCredits(creditResult.remaining);
     prepareWinningSound();
     setWinner(null);
     setTriggerSpin(true);
+  };
+
+  const redeemCode = async () => {
+    setIsRedeeming(true); setCodeMessage("");
+    const result = await redeemSpinCodeAction(spinCode);
+    setIsRedeeming(false);
+    if ("success" in result && result.success) { setCredits(result.remaining || 0); setSpinCode(""); setCodeMessage("Đã thêm lượt quay vào tài khoản."); setShowCodePrompt(false); }
+    else setCodeMessage(result.error || "Không thể dùng mã.");
   };
 
   const handleSpinStart = () => {
@@ -148,6 +169,7 @@ export default function WheelClientWrapper({
       <div className="wheel-focused-view">
         {/* Left Column: Canvas, Spin Button, Winner Reveal */}
         <div className="wheel-focused-content" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          {!isAdminView && <div className="glass-panel spin-code-entry"><div><strong>🔑 Nhập mã quay</strong><p>{currentUser ? `Lượt còn lại: ${credits}` : "Đăng nhập để sử dụng mã và bắt đầu quay."}</p></div><div style={{ display: "flex", gap: ".5rem" }}><input maxLength={10} placeholder="MÃ QUAY" value={spinCode} onChange={(e) => setSpinCode(e.target.value.toUpperCase())} disabled={!currentUser} /><button className="btn btn-secondary" onClick={redeemCode} disabled={!currentUser || !spinCode || isRedeeming}>{isRedeeming ? "Đang kiểm tra" : "Xác nhận"}</button></div>{codeMessage && <small>{codeMessage}</small>}</div>}
           <div className="glass-panel" style={{ textAlign: "center", padding: "0.75rem" }}>
             <WheelStage backgroundImage={backgroundImage} className="wheel-view-stage">
               <LuckyWheel
@@ -159,6 +181,8 @@ export default function WheelClientWrapper({
               setTriggerSpinSignal={setTriggerSpin}
               customWinningIndex={getCustomWinningIndex()}
                 large
+                canSpin={isAdminView || Boolean(currentUser && credits > 0)}
+                onSpinRequest={handleSpinStartClick}
               />
             </WheelStage>
 
@@ -167,7 +191,7 @@ export default function WheelClientWrapper({
                 className="btn btn-primary"
                 style={{ width: "100%", padding: "1rem", fontSize: "1.2rem" }}
                 onClick={handleSpinStartClick}
-                disabled={isSpinning || activeItems.length === 0}
+                disabled={isSpinning || activeItems.length === 0 || (!isAdminView && (!currentUser || credits <= 0))}
               >
                 {isSpinning ? "Đang quay..." : "QUAY NGAY"}
               </button>
@@ -185,6 +209,7 @@ export default function WheelClientWrapper({
           <small>Nhấn bất kỳ phím nào hoặc bấm bên ngoài để đóng</small>
         </span>
       </button>}
+      {showCodePrompt && <button type="button" className="wheel-result-backdrop" onClick={() => setShowCodePrompt(false)} aria-label="Đóng thông báo mã quay"><span className="wheel-result-popup wheel-code-popup"><span className="wheel-result-sparkle">🔑</span><span className="wheel-result-title">CHƯA CÓ LƯỢT QUAY</span><strong>{currentUser ? "Hãy nhập mã quay để bắt đầu" : "Hãy đăng nhập và nhập mã quay"}</strong><small>{currentUser ? "Nhập mã ở khung phía trên, sau đó bấm Xác nhận." : "Đăng nhập để sử dụng mã quay và bắt đầu."}</small></span></button>}
     </div>
   );
 }

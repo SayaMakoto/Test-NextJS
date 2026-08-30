@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { getCurrentUser, logoutAction } from "@/lib/auth";
-import { ChartBarIcon, WheelIcon, UsersIcon, HomeIcon } from "@/components/Icons";
+import { ChartBarIcon, WheelIcon, UsersIcon, KeyIcon } from "@/components/Icons";
 
 export default async function AdminLayout({
   children,
@@ -70,6 +70,9 @@ export default async function AdminLayout({
           </Link>
           <Link href="/admin/users" className="btn btn-secondary" style={{ justifyContent: "flex-start", width: "100%", textAlign: "left", gap: "0.75rem" }}>
             <UsersIcon className="w-5 h-5" /> Quản lý người dùng
+          </Link>
+          <Link href="/admin/spin-codes" className="btn btn-secondary" style={{ justifyContent: "flex-start", width: "100%", textAlign: "left", gap: "0.75rem" }}>
+            <KeyIcon className="w-5 h-5" /> Quản lý mã quay
           </Link>
         </aside>
 

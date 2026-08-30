@@ -19,6 +19,8 @@ interface LuckyWheelProps {
   setTriggerSpinSignal: (val: boolean) => void;
   customWinningIndex: number | null; // Set by host to manipulate result
   large?: boolean;
+  canSpin?: boolean;
+  onSpinRequest?: () => void;
 }
 
 export default function LuckyWheel({
@@ -30,6 +32,8 @@ export default function LuckyWheel({
   setTriggerSpinSignal,
   customWinningIndex,
   large = false,
+  canSpin = true,
+  onSpinRequest,
 }: LuckyWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -360,13 +364,14 @@ export default function LuckyWheel({
           width: "100%",
           height: "100%",
           display: "block",
-          cursor: isSpinning ? "not-allowed" : "pointer",
+          cursor: isSpinning || !canSpin ? "not-allowed" : "pointer",
           position: "relative",
           zIndex: 1,
         }}
         onClick={() => {
-          if (!isSpinning) {
-            setTriggerSpinSignal(true);
+          if (!isSpinning && canSpin) {
+            if (onSpinRequest) onSpinRequest();
+            else setTriggerSpinSignal(true);
           }
         }}
       />

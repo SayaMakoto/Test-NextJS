@@ -179,3 +179,20 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
     return { error: "Không thể thay đổi vai trò người dùng." };
   }
 }
+
+export async function createSpinCodeAction(code: string, amount: number) {
+  const user = await getCurrentUser();
+  const normalized = code.trim().toUpperCase();
+  if (!user || user.role !== "admin") return { error: "Bạn không có quyền thực hiện hành động này." };
+  if (!/^[A-Z0-9]{1,10}$/.test(normalized)) return { error: "Mã quay chỉ gồm chữ/số, tối đa 10 ký tự." };
+  if (!Number.isInteger(amount) || amount < 1) return { error: "Số lượt quay phải lớn hơn 0." };
+  try { await db.spinCode.create({ data: { code: normalized, amount } }); revalidatePath("/admin/spin-codes"); return { success: true }; }
+  catch { return { error: "Mã quay này đã tồn tại." }; }
+}
+
+export async function deleteSpinCodeAction(id: string) {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "admin") return { error: "Bạn không có quyền thực hiện hành động này." };
+  try { await db.spinCode.delete({ where: { id } }); revalidatePath("/admin/spin-codes"); return { success: true }; }
+  catch { return { error: "Không thể xóa mã quay." }; }
+}
