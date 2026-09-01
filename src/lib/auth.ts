@@ -75,9 +75,10 @@ export async function getCurrentUser() {
   try {
     const user = await db.user.findUnique({
       where: { id: payload.userId as string },
-      select: { id: true, username: true, email: true, role: true },
+      select: { id: true, username: true, email: true, role: true, isBanned: true },
     });
-    return user;
+    // A blocked account cannot keep using an old session token.
+    return user?.isBanned ? null : user;
   } catch (e) {
     return null;
   }
@@ -161,6 +162,10 @@ export async function loginAction(prevState: any, formData: FormData) {
 
     if (!user) {
       return { error: "Tên đăng nhập hoặc mật khẩu không chính xác." };
+    }
+
+    if (user.isBanned) {
+      return { error: "Tài khoản này đã bị đưa vào danh sách đen. Vui lòng liên hệ quản trị viên." };
     }
 
     const passwordMatch = await comparePassword(password, user.password);

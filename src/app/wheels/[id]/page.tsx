@@ -64,6 +64,7 @@ export default async function WheelDetailPage({ params }: PageProps) {
         customWinnerId={wheel.customWinnerId}
         hideOnWin={wheel.hideOnWin}
         backgroundImage={wheel.backgroundImage}
+        initialUpdatedAt={wheel.updatedAt.toISOString()}
         initialCredits={credit?._sum.remaining ?? 0}
       />
     </div>

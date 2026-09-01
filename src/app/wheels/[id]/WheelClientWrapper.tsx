@@ -16,6 +16,7 @@ interface WheelClientWrapperProps {
   customWinnerId?: string;
   hideOnWin?: boolean;
   backgroundImage?: string | null;
+  initialUpdatedAt: string;
   initialCredits: number;
 }
 
@@ -28,52 +29,97 @@ export default function WheelClientWrapper({
   customWinnerId = "random",
   hideOnWin = false,
   backgroundImage,
+  initialUpdatedAt,
   initialCredits,
 }: WheelClientWrapperProps) {
   const [items, setItems] = useState<WheelItem[]>(slices);
+  const [wheelConfig, setWheelConfig] = useState({ wheelName, customWinnerId, hideOnWin, backgroundImage, updatedAt: initialUpdatedAt });
   const [isSpinning, setIsSpinning] = useState(false);
   const [triggerSpin, setTriggerSpin] = useState(false);
   const [winner, setWinner] = useState<WheelItem | null>(null);
   const winAudioContextRef = useRef<AudioContext | null>(null);
+  const spinCreditPromiseRef = useRef<Promise<boolean> | null>(null);
+  const spinStartLockedRef = useRef(false);
+  const spinCreditErrorRef = useRef("");
   const isAdminView = currentUser?.role === "admin";
   const [credits, setCredits] = useState(initialCredits);
   const [spinCode, setSpinCode] = useState("");
   const [codeMessage, setCodeMessage] = useState("");
   const [isRedeeming, setIsRedeeming] = useState(false);
+  const [isSpinStarting, setIsSpinStarting] = useState(false);
   // Show the guidance immediately for every regular visitor with no credits,
   // including guests. Guests will see that they need to sign in before using a code.
   const [showCodePrompt, setShowCodePrompt] = useState(Boolean(!isAdminView && initialCredits <= 0));
-
-  useEffect(() => {
-    if (!winner) return;
-
-    const closeResult = () => setWinner(null);
-    window.addEventListener("keydown", closeResult);
-    return () => window.removeEventListener("keydown", closeResult);
-  }, [winner]);
 
   // Sync slices prop updates
   useEffect(() => {
     setItems(slices);
   }, [slices]);
 
+  // Poll only a small configuration payload. This makes changes saved by the
+  // admin visible to active visitors within two seconds, without a refresh.
+  useEffect(() => {
+    let cancelled = false;
+    const syncWheelConfig = async () => {
+      if (document.visibilityState !== "visible" || isSpinning || isSpinStarting) return;
+      try {
+        const response = await fetch(`/api/wheels/${wheelId}`, { cache: "no-store" });
+        if (!response.ok) return;
+        const next = await response.json() as { name: string; slices: string; customWinnerId: string; hideOnWin: boolean; backgroundImage: string | null; updatedAt: string };
+        if (cancelled || next.updatedAt === wheelConfig.updatedAt) return;
+        const nextSlices = JSON.parse(next.slices) as WheelItem[];
+        if (!Array.isArray(nextSlices)) return;
+        setItems(nextSlices);
+        setWheelConfig({ wheelName: next.name, customWinnerId: next.customWinnerId, hideOnWin: next.hideOnWin, backgroundImage: next.backgroundImage, updatedAt: next.updatedAt });
+      } catch {
+        // Keep the last known configuration if the visitor temporarily loses connection.
+      }
+    };
+    const timer = window.setInterval(syncWheelConfig, 2000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [wheelId, wheelConfig.updatedAt, isSpinning, isSpinStarting]);
+
   const activeItems = items.filter((item) => item.enabled);
 
   const getCustomWinningIndex = (): number | null => {
-    if (customWinnerId === "random") return null;
-    const index = activeItems.findIndex((item) => item.id === customWinnerId);
+    if (wheelConfig.customWinnerId === "random") return null;
+    const index = activeItems.findIndex((item) => item.id === wheelConfig.customWinnerId);
     return index !== -1 ? index : null;
   };
 
-  const handleSpinStartClick = async () => {
-    if (activeItems.length === 0) return;
+  const handleSpinStartClick = () => {
+    if (activeItems.length === 0 || isSpinning || isSpinStarting || spinStartLockedRef.current) return;
     if (!currentUser) { setCodeMessage("Vui lòng đăng nhập và nhập mã quay trước khi quay."); setShowCodePrompt(true); return; }
-    const creditResult = await consumeSpinCreditAction();
-    if (!("success" in creditResult) || !creditResult.success) { setCodeMessage(creditResult.error || "Không thể quay."); setShowCodePrompt(true); return; }
-    if (creditResult.remaining >= 0) setCredits(creditResult.remaining);
+
+    spinStartLockedRef.current = true;
     prepareWinningSound();
     setWinner(null);
     setTriggerSpin(true);
+
+    // Start the animation immediately. The database credit check happens in
+    // parallel and must complete successfully before the result is recorded.
+    if (isAdminView) return;
+
+    setIsSpinStarting(true);
+    setCredits((current) => Math.max(0, current - 1));
+    spinCreditErrorRef.current = "";
+    const creditPromise = consumeSpinCreditAction()
+      .then((creditResult) => {
+        if ("success" in creditResult && creditResult.success) {
+          setCredits(creditResult.remaining);
+          return true;
+        }
+        spinCreditErrorRef.current = creditResult.error || "Không thể xác nhận lượt quay.";
+        setCredits((current) => current + 1);
+        return false;
+      })
+      .catch(() => {
+        spinCreditErrorRef.current = "Không thể xác nhận lượt quay.";
+        setCredits((current) => current + 1);
+        return false;
+      })
+      .finally(() => setIsSpinStarting(false));
+    spinCreditPromiseRef.current = creditPromise;
   };
 
   const redeemCode = async () => {
@@ -126,14 +172,22 @@ export default function WheelClientWrapper({
   };
 
   const handleSpinComplete = async (wonItem: WheelItem) => {
+    const creditAccepted = await (spinCreditPromiseRef.current ?? Promise.resolve(true));
+    spinCreditPromiseRef.current = null;
+    spinStartLockedRef.current = false;
     setIsSpinning(false);
+    if (!creditAccepted) {
+      setCodeMessage(spinCreditErrorRef.current || "Bạn chưa có lượt quay. Hãy nhập mã quay mới.");
+      setShowCodePrompt(true);
+      return;
+    }
     setWinner(wonItem);
     playWinningSound();
 
     // Save spin result in database
     await saveSpinAction(wheelId, wonItem.label);
 
-    if (hideOnWin) {
+    if (wheelConfig.hideOnWin) {
       setTimeout(() => {
         setItems((prevItems) =>
           prevItems.map((item) =>
@@ -161,7 +215,7 @@ export default function WheelClientWrapper({
           <Link href={isAdminView ? "/admin/wheels" : "/"} className="btn btn-secondary" style={{ padding: "0.45rem 0.7rem", fontSize: "0.8rem" }}>
             <ArrowLeftIcon className="w-4 h-4" /> Quay về
           </Link>
-          <h1 style={{ fontSize: "2.2rem", fontWeight: "800" }}>{wheelName}</h1>
+          <h1 style={{ fontSize: "2.2rem", fontWeight: "800" }}>{wheelConfig.wheelName}</h1>
           <span style={{ width: "91px" }} aria-hidden="true" />
         </div>
       </div>
@@ -171,7 +225,7 @@ export default function WheelClientWrapper({
         <div className="wheel-focused-content" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           {!isAdminView && <div className="glass-panel spin-code-entry"><div><strong>🔑 Nhập mã quay</strong><p>{currentUser ? `Lượt còn lại: ${credits}` : "Đăng nhập để sử dụng mã và bắt đầu quay."}</p></div><div style={{ display: "flex", gap: ".5rem" }}><input maxLength={10} placeholder="MÃ QUAY" value={spinCode} onChange={(e) => setSpinCode(e.target.value.toUpperCase())} disabled={!currentUser} /><button className="btn btn-secondary" onClick={redeemCode} disabled={!currentUser || !spinCode || isRedeeming}>{isRedeeming ? "Đang kiểm tra" : "Xác nhận"}</button></div>{codeMessage && <small>{codeMessage}</small>}</div>}
           <div className="glass-panel" style={{ textAlign: "center", padding: "0.75rem" }}>
-            <WheelStage backgroundImage={backgroundImage} className="wheel-view-stage">
+            <WheelStage backgroundImage={wheelConfig.backgroundImage} className="wheel-view-stage">
               <LuckyWheel
               items={items}
               isSpinning={isSpinning}
@@ -181,7 +235,7 @@ export default function WheelClientWrapper({
               setTriggerSpinSignal={setTriggerSpin}
               customWinningIndex={getCustomWinningIndex()}
                 large
-                canSpin={isAdminView || Boolean(currentUser && credits > 0)}
+                canSpin={!isSpinStarting && (isAdminView || Boolean(currentUser && credits > 0))}
                 onSpinRequest={handleSpinStartClick}
               />
             </WheelStage>
@@ -191,7 +245,7 @@ export default function WheelClientWrapper({
                 className="btn btn-primary"
                 style={{ width: "100%", padding: "1rem", fontSize: "1.2rem" }}
                 onClick={handleSpinStartClick}
-                disabled={isSpinning || activeItems.length === 0 || (!isAdminView && (!currentUser || credits <= 0))}
+                disabled={isSpinning || isSpinStarting || activeItems.length === 0 || (!isAdminView && (!currentUser || credits <= 0))}
               >
                 {isSpinning ? "Đang quay..." : "QUAY NGAY"}
               </button>
@@ -201,14 +255,15 @@ export default function WheelClientWrapper({
         </div>
       </div>
 
-      {winner && <button type="button" className="wheel-result-backdrop" onClick={() => setWinner(null)} aria-label="Đóng thông báo kết quả">
-        <span className="wheel-result-popup">
+      {winner && <div className="wheel-result-backdrop" onClick={(event) => { if (event.target === event.currentTarget) setWinner(null); }} role="presentation">
+        <div className="wheel-result-popup" role="dialog" aria-modal="true" aria-label="Kết quả vòng quay">
+          <button type="button" className="wheel-result-close" onClick={() => setWinner(null)} aria-label="Đóng thông báo">×</button>
           <span className="wheel-result-sparkle">✦</span>
           <span className="wheel-result-title">CHÚC MỪNG!</span>
           <strong>{winner.label}</strong>
-          <small>Nhấn bất kỳ phím nào hoặc bấm bên ngoài để đóng</small>
-        </span>
-      </button>}
+          <small>Bấm bên ngoài thông báo hoặc nút × để đóng</small>
+        </div>
+      </div>}
       {showCodePrompt && <button type="button" className="wheel-result-backdrop" onClick={() => setShowCodePrompt(false)} aria-label="Đóng thông báo mã quay"><span className="wheel-result-popup wheel-code-popup"><span className="wheel-result-sparkle">🔑</span><span className="wheel-result-title">CHƯA CÓ LƯỢT QUAY</span><strong>{currentUser ? "Hãy nhập mã quay để bắt đầu" : "Hãy đăng nhập và nhập mã quay"}</strong><small>{currentUser ? "Nhập mã ở khung phía trên, sau đó bấm Xác nhận." : "Đăng nhập để sử dụng mã quay và bắt đầu."}</small></span></button>}
     </div>
   );

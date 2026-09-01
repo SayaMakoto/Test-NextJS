@@ -180,6 +180,44 @@ export async function updateUserRoleAction(userId: string, newRole: string) {
   }
 }
 
+export async function setUserBlacklistAction(userId: string, isBanned: boolean) {
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== "admin") return { error: "Bạn không có quyền thực hiện hành động này." };
+  if (admin.id === userId) return { error: "Bạn không thể đưa chính mình vào danh sách đen." };
+
+  const target = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!target) return { error: "Không tìm thấy người dùng." };
+  if (target.role === "admin") return { error: "Không thể đưa tài khoản quản trị vào danh sách đen." };
+
+  try {
+    await db.user.update({ where: { id: userId }, data: { isBanned } });
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch {
+    return { error: "Không thể cập nhật danh sách đen." };
+  }
+}
+
+export async function deleteBlacklistedUserAction(userId: string) {
+  const admin = await getCurrentUser();
+  if (!admin || admin.role !== "admin") return { error: "Bạn không có quyền thực hiện hành động này." };
+  if (admin.id === userId) return { error: "Bạn không thể xóa tài khoản của chính mình." };
+
+  const target = await db.user.findUnique({ where: { id: userId }, select: { role: true, isBanned: true } });
+  if (!target) return { error: "Không tìm thấy người dùng." };
+  if (target.role === "admin") return { error: "Không thể xóa tài khoản quản trị." };
+  if (!target.isBanned) return { error: "Chỉ có thể xóa tài khoản đang ở danh sách đen." };
+
+  try {
+    await db.user.delete({ where: { id: userId } });
+    revalidatePath("/admin/users");
+    revalidatePath("/");
+    return { success: true };
+  } catch {
+    return { error: "Không thể xóa tài khoản người dùng." };
+  }
+}
+
 export async function createSpinCodeAction(code: string, amount: number) {
   const user = await getCurrentUser();
   const normalized = code.trim().toUpperCase();

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
 import WheelStage from "@/components/WheelStage";
 import WheelBackgroundUpload from "@/components/WheelBackgroundUpload";
+import WheelColorPicker from "@/components/WheelColorPicker";
 import { createWheelAction } from "../../actions";
 import { ArrowLeftIcon, CheckIcon, PencilIcon, PlusIcon, TrashIcon, WheelIcon } from "@/components/Icons";
 
@@ -110,7 +111,7 @@ export default function CreateWheelClient() {
               {slices.map((slice, index) => <div key={slice.id} className="wheel-slice-row">
                 <input aria-label={`Bật ô ${index + 1}`} type="checkbox" checked={slice.enabled} onChange={(event) => updateSlice(slice.id, { enabled: event.target.checked })} />
                 <input aria-label={`Tên ô ${index + 1}`} type="text" value={slice.label} onChange={(event) => updateSlice(slice.id, { label: event.target.value })} />
-                <input aria-label={`Màu ô ${index + 1}`} type="color" value={slice.color} onChange={(event) => updateSlice(slice.id, { color: event.target.value })} />
+                <WheelColorPicker label={`Màu ô ${index + 1}`} value={slice.color} onChange={(color) => updateSlice(slice.id, { color })} />
                 <label className="wheel-weight">Tỷ lệ <strong>{slice.weight}</strong><input aria-label={`Tỷ lệ ô ${index + 1}`} type="range" min="1" max="10" value={slice.weight} onChange={(event) => updateSlice(slice.id, { weight: Number(event.target.value) })} /></label>
                 <button type="button" aria-label={`Xóa ô ${index + 1}`} className="btn btn-danger" disabled={slices.length <= 2} onClick={() => removeSlice(slice.id)} style={{ padding: "0.35rem" }}><TrashIcon className="w-4 h-4" /></button>
               </div>)}

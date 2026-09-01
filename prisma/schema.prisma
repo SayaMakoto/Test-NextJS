@@ -14,6 +14,7 @@ model User {
   email     String        @unique
   password  String
   role      String        @default("member") // "member" | "admin"
+  isBanned  Boolean       @default(false)
   wheels    Wheel[]
   spins     SpinHistory[]
   codeRedemptions SpinCodeRedemption[]

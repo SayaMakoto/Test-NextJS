@@ -1,17 +1,51 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createSpinCodeAction, deleteSpinCodeAction } from "../actions";
 import { KeyIcon, PlusIcon, TrashIcon } from "@/components/Icons";
+import AdminPagination from "@/components/AdminPagination";
 
 type SpinCode = { id: string; code: string; amount: number; status: string; createdAt: string };
+const PAGE_SIZE = 10;
 const randomCode = () => Math.random().toString(36).slice(2, 10).toUpperCase();
 
 export default function SpinCodesClient({ initialCodes }: { initialCodes: SpinCode[] }) {
-  const [codes, setCodes] = useState(initialCodes); const [code, setCode] = useState(randomCode); const [amount, setAmount] = useState(1); const [filter, setFilter] = useState("all"); const [message, setMessage] = useState(""); const [saving, setSaving] = useState(false); const [copiedCode, setCopiedCode] = useState("");
+  const [codes, setCodes] = useState(initialCodes);
+  const [code, setCode] = useState(randomCode);
+  const [amount, setAmount] = useState(1);
+  const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [copiedCode, setCopiedCode] = useState("");
   const displayed = useMemo(() => filter === "all" ? codes : codes.filter((item) => item.status === filter), [codes, filter]);
-  const createCode = async (event: React.FormEvent) => { event.preventDefault(); setSaving(true); const result = await createSpinCodeAction(code, amount); setSaving(false); if (result.success) window.location.reload(); else setMessage(result.error || "Không thể tạo mã."); };
-  const remove = async (id: string) => { if (!confirm("Xóa mã quay này?")) return; const result = await deleteSpinCodeAction(id); if (result.success) setCodes((list) => list.filter((item) => item.id !== id)); else setMessage(result.error || "Không thể xóa mã."); };
-  const copyCode = async (value: string) => { try { await navigator.clipboard.writeText(value); setCopiedCode(value); window.setTimeout(() => setCopiedCode((current) => current === value ? "" : current), 1500); } catch { setMessage("Không thể sao chép mã. Hãy thử lại."); } };
-  return <div><h2 style={{ fontSize: "1.5rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}><KeyIcon className="w-6 h-6" style={{ color: "#f472b6" }} /> Quản lý mã quay</h2>{message && <p style={{ color: "#fca5a5", marginBottom: "1rem" }}>{message}</p>}<form className="glass-panel spin-code-form" onSubmit={createCode}><label className="wheel-form-label">Mã quay (tối đa 10 ký tự)<div style={{ display: "flex", gap: "0.4rem" }}><input maxLength={10} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} /><button type="button" className="btn btn-secondary" onClick={() => setCode(randomCode())} style={{ padding: "0.4rem" }}>↻</button></div></label><label className="wheel-form-label">Số lượt quay<input type="number" min="1" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></label><button className="btn btn-primary" disabled={saving}><PlusIcon className="w-4 h-4" /> {saving ? "Đang tạo" : "Tạo mã"}</button></form><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "1.5rem 0 .8rem" }}><h3>Danh sách mã quay</h3><select value={filter} onChange={(e) => setFilter(e.target.value)} style={{ width: "180px" }}><option value="all">Tất cả trạng thái</option><option value="unused">Chưa sử dụng</option><option value="used">Đã sử dụng</option></select></div><div className="glass-panel" style={{ padding: 0, overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr style={{ textAlign: "left", background: "rgba(255,255,255,.04)" }}><th style={{ padding: ".85rem" }}>Mã quay</th><th>Số lượng</th><th>Tình trạng</th><th>Ngày tạo</th><th>Xóa</th></tr></thead><tbody>{displayed.map((item) => <tr key={item.id} style={{ borderTop: "1px solid rgba(255,255,255,.06)" }}><td style={{ padding: ".85rem", fontFamily: "var(--font-mono)", color: "#ddd6fe" }}><span style={{ marginRight: ".5rem" }}>{item.code}</span><button type="button" className="btn btn-secondary" onClick={() => copyCode(item.code)} style={{ padding: ".25rem .45rem", fontSize: ".75rem" }} aria-label={`Sao chép mã ${item.code}`}>{copiedCode === item.code ? "Đã chép" : "Sao chép"}</button></td><td>{item.amount}</td><td style={{ color: item.status === "unused" ? "#34d399" : "#fbbf24" }}>{item.status === "unused" ? "Chưa sử dụng" : "Đã sử dụng"}</td><td>{new Date(item.createdAt).toLocaleString("vi-VN")}</td><td><button className="btn btn-danger" onClick={() => remove(item.id)} style={{ padding: ".35rem" }}><TrashIcon className="w-4 h-4" /></button></td></tr>)}{displayed.length === 0 && <tr><td colSpan={5} style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>Không có mã phù hợp.</td></tr>}</tbody></table></div></div>;
+  const totalPages = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE));
+  const pagedCodes = displayed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+
+  const createCode = async (event: React.FormEvent) => {
+    event.preventDefault(); setSaving(true);
+    const result = await createSpinCodeAction(code, amount);
+    setSaving(false);
+    if (result.success) window.location.reload(); else setMessage(result.error || "Không thể tạo mã.");
+  };
+  const remove = async (id: string) => {
+    if (!confirm("Xóa mã quay này?")) return;
+    const result = await deleteSpinCodeAction(id);
+    if (result.success) setCodes((list) => list.filter((item) => item.id !== id)); else setMessage(result.error || "Không thể xóa mã.");
+  };
+  const copyCode = async (value: string) => {
+    try { await navigator.clipboard.writeText(value); setCopiedCode(value); window.setTimeout(() => setCopiedCode((current) => current === value ? "" : current), 1500); }
+    catch { setMessage("Không thể sao chép mã. Hãy thử lại."); }
+  };
+
+  return <div>
+    <h2 style={{ fontSize: "1.5rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}><KeyIcon className="w-6 h-6" style={{ color: "#f472b6" }} /> Quản lý mã quay</h2>
+    {message && <p style={{ color: "#fca5a5", marginBottom: "1rem" }}>{message}</p>}
+    <form className="glass-panel spin-code-form" onSubmit={createCode}><label className="wheel-form-label">Mã quay (tối đa 10 ký tự)<div style={{ display: "flex", gap: "0.4rem" }}><input maxLength={10} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} /><button type="button" className="btn btn-secondary" onClick={() => setCode(randomCode())} style={{ padding: "0.4rem" }}>↻</button></div></label><label className="wheel-form-label">Số lượt quay<input type="number" min="1" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></label><button className="btn btn-primary" disabled={saving}><PlusIcon className="w-4 h-4" /> {saving ? "Đang tạo" : "Tạo mã"}</button></form>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem", flexWrap: "wrap", margin: "1.5rem 0 .8rem" }}><h3>Danh sách mã quay</h3><div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}><select value={filter} onChange={(e) => { setFilter(e.target.value); setPage(1); }} style={{ width: "180px" }}><option value="all">Tất cả trạng thái</option><option value="unused">Chưa sử dụng</option><option value="used">Đã sử dụng</option></select>{filter !== "all" && <button type="button" className="btn btn-secondary" onClick={() => { setFilter("all"); setPage(1); }}>Xóa lọc</button>}</div></div>
+    <div className="glass-panel" style={{ padding: 0, overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr style={{ textAlign: "left", background: "rgba(255,255,255,.04)" }}><th style={{ padding: ".85rem" }}>Mã quay</th><th>Số lượt quay</th><th>Tình trạng</th><th>Ngày tạo</th><th>Xóa</th></tr></thead><tbody>{pagedCodes.map((item) => <tr key={item.id} style={{ borderTop: "1px solid rgba(255,255,255,.06)" }}><td style={{ padding: ".85rem", fontFamily: "var(--font-mono)", color: "#ddd6fe" }}><span style={{ marginRight: ".5rem" }}>{item.code}</span>{item.status === "unused" && <button type="button" className="btn btn-secondary" onClick={() => copyCode(item.code)} style={{ padding: ".25rem .45rem", fontSize: ".75rem" }} aria-label={`Sao chép mã ${item.code}`}>{copiedCode === item.code ? "Đã chép" : "Sao chép"}</button>}</td><td>{item.amount}</td><td style={{ color: item.status === "unused" ? "#34d399" : "#fbbf24" }}>{item.status === "unused" ? "Chưa sử dụng" : "Đã sử dụng"}</td><td>{new Date(item.createdAt).toLocaleString("vi-VN")}</td><td><button className="btn btn-danger" onClick={() => remove(item.id)} style={{ padding: ".35rem" }}><TrashIcon className="w-4 h-4" /></button></td></tr>)}{displayed.length === 0 && <tr><td colSpan={5} style={{ textAlign: "center", padding: "2rem", color: "#9ca3af" }}>Không có mã phù hợp.</td></tr>}</tbody></table></div>
+    <AdminPagination page={page} totalItems={displayed.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+  </div>;
 }

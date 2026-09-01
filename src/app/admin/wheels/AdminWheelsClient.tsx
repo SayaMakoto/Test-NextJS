@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { softDeleteWheelAction } from "../actions";
 import { WheelIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from "@/components/Icons";
+import AdminPagination from "@/components/AdminPagination";
 
 interface SerializedWheel {
   id: string;
@@ -23,14 +24,21 @@ interface AdminWheelsClientProps {
 }
 
 export default function AdminWheelsClient({ initialWheels }: AdminWheelsClientProps) {
+  const pageSize = 10;
   const router = useRouter();
   const [wheels, setWheels] = useState<SerializedWheel[]>(initialWheels);
   const [message, setMessage] = useState<{ error?: string; success?: string } | null>(null);
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(wheels.length / pageSize));
+  const pagedWheels = wheels.slice((page - 1) * pageSize, page * pageSize);
 
   // Synchronize component state with prop updates
   React.useEffect(() => {
     setWheels(initialWheels);
+    setPage(1);
   }, [initialWheels]);
+
+  React.useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   const showMessage = (msg: { error?: string; success?: string }) => {
     setMessage(msg);
@@ -110,7 +118,7 @@ export default function AdminWheelsClient({ initialWheels }: AdminWheelsClientPr
             </thead>
             <tbody>
               {wheels.length > 0 ? (
-                wheels.map((wheel) => (
+                pagedWheels.map((wheel) => (
                   <tr 
                     key={wheel.id} 
                     style={{ 
@@ -168,6 +176,7 @@ export default function AdminWheelsClient({ initialWheels }: AdminWheelsClientPr
             </tbody>
           </table>
         </div>
+        <AdminPagination page={page} totalItems={wheels.length} pageSize={pageSize} onPageChange={setPage} />
       </div>
     </div>
   );

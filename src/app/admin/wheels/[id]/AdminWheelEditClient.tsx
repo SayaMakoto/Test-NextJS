@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LuckyWheel, { WheelItem } from "@/components/LuckyWheel";
 import WheelStage from "@/components/WheelStage";
 import WheelBackgroundUpload from "@/components/WheelBackgroundUpload";
+import WheelColorPicker from "@/components/WheelColorPicker";
 import { updateWheelAction } from "../../actions";
 import { 
   ArrowLeftIcon, 
@@ -54,11 +55,15 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
   const [message, setMessage] = useState<{ error?: string; success?: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(initialWheel.backgroundImage);
+  const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showMessage = (msg: { error?: string; success?: string }) => {
     setMessage(msg);
-    setTimeout(() => setMessage(null), 4000);
+    if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    messageTimerRef.current = setTimeout(() => setMessage(null), 3000);
   };
+
+  useEffect(() => () => { if (messageTimerRef.current) clearTimeout(messageTimerRef.current); }, []);
 
   const handleUpdateSlice = (id: string, updates: Partial<WheelItem>) => {
     setSlices((prev) =>
@@ -131,16 +136,10 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
         </Link>
       </div>
 
-      {message?.success && (
-        <div className="glass-panel" style={{ color: "#10b981", background: "rgba(16, 185, 129, 0.15)", marginBottom: "1rem", padding: "0.8rem" }}>
-          {message.success}
-        </div>
-      )}
-      {message?.error && (
-        <div className="glass-panel" style={{ color: "#ef4444", background: "rgba(239, 68, 68, 0.15)", marginBottom: "1rem", padding: "0.8rem" }}>
-          {message.error}
-        </div>
-      )}
+      {message && <div className={`admin-toast ${message.success ? "admin-toast-success" : "admin-toast-error"}`} role={message.error ? "alert" : "status"}>
+        <span>{message.success || message.error}</span>
+        <button type="button" onClick={() => setMessage(null)} aria-label="Đóng thông báo">×</button>
+      </div>}
 
       {/* Main split grid */}
       <div className="wheel-edit-layout"
@@ -228,7 +227,7 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
                 display: "flex", 
                 flexDirection: "column", 
                 gap: "0.5rem", 
-                maxHeight: "260px", 
+                maxHeight: "420px", 
                 overflowY: "auto",
                 paddingRight: "0.25rem",
                 marginBottom: "1.5rem"
@@ -260,12 +259,7 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
                     style={{ padding: "0.3rem 0.5rem", fontSize: "0.8rem", flex: 1 }}
                   />
 
-                  <input
-                    type="color"
-                    value={slice.color}
-                    onChange={(e) => handleUpdateSlice(slice.id, { color: e.target.value })}
-                    style={{ width: "24px", height: "24px", border: "none", background: "none", cursor: "pointer", padding: 0 }}
-                  />
+                  <WheelColorPicker label={`Màu ô ${slice.label}`} value={slice.color} onChange={(color) => handleUpdateSlice(slice.id, { color })} />
 
                   <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
                     <span style={{ fontSize: "0.7rem", color: "#9ca3af", width: "16px", textAlign: "right" }}>
