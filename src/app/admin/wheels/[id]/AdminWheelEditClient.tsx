@@ -228,7 +228,7 @@ export default function AdminWheelEditClient({ initialWheel }: AdminWheelEditCli
                 flexDirection: "column", 
                 gap: "0.5rem", 
                 maxHeight: "420px", 
-                overflowY: "auto",
+                overflowY: slices.length > 6 ? "auto" : "visible",
                 paddingRight: "0.25rem",
                 marginBottom: "1.5rem"
               }}

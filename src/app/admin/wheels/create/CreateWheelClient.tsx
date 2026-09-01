@@ -107,7 +107,7 @@ export default function CreateWheelClient() {
               <div><h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>Các ô vòng quay</h3><p style={{ color: "#9ca3af", fontSize: "0.8rem", marginTop: "0.25rem" }}>Bật/tắt, đổi màu và đặt tỷ lệ xuất hiện.</p></div>
               <button type="button" className="btn btn-secondary" onClick={addSlice} style={{ padding: "0.45rem 0.7rem", fontSize: "0.8rem" }}><PlusIcon className="w-4 h-4" /> Thêm ô</button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem", maxHeight: "330px", overflowY: "auto", paddingRight: "0.25rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem", maxHeight: "330px", overflowY: slices.length > 6 ? "auto" : "visible", paddingRight: "0.25rem" }}>
               {slices.map((slice, index) => <div key={slice.id} className="wheel-slice-row">
                 <input aria-label={`Bật ô ${index + 1}`} type="checkbox" checked={slice.enabled} onChange={(event) => updateSlice(slice.id, { enabled: event.target.checked })} />
                 <input aria-label={`Tên ô ${index + 1}`} type="text" value={slice.label} onChange={(event) => updateSlice(slice.id, { label: event.target.value })} />
